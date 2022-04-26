@@ -24,15 +24,28 @@ function addRemove(e) {
     );
   }
   else {
-    const newBox = document.createElement('div');
-    newBox.addEventListener('click', addRemove);
-    newBox.append(document.createTextNode((nChildren+1).toString())); // put a number
+    const newBox = createBox(nChildren);
     e.target.after(newBox);
 
     const newRects = getRects(container);
     animateOthers(oldRects, newRects, duration);
     animateNode(newBox, animation, duration, true);
   }
+}
+
+
+
+
+function createBox(nChildren) {
+  const newBox = document.createElement('div');
+  switch(parseInt(Math.random()*(4-1)+1)) {
+    case 1: newBox.style.width = "100px"; break;
+    case 2: newBox.style.width = "150px"; break;
+    case 3: newBox.style.width = "200px"; break;
+  }
+  newBox.addEventListener('click', addRemove);
+  newBox.append(document.createTextNode((nChildren+1).toString())); // put a number
+  return newBox;
 }
 
 
