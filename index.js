@@ -7,20 +7,20 @@ document
 
 function addRemove(e) { 
   const container = e.target.parentElement;
-  const oldRects  = getRects();
+  const oldRects  = getRects(container);
   const nChildren = container.children.length;
-  const animation = container.dataset.animation;
+  const animation = container.dataset.animationType;
+  const duration  = parseInt(container.dataset.animationSpeed);
 
   if(e.ctrlKey) {
-    animateNode(e.target, animation, false);
-    nChildren>1 && e.target.getAnimations().map(
-      animation => animation.finished.then(() => {
-        if(e.target.parentElement === container) {
+    animateNode(e.target, animation, duration, false).then(
+      () => {
+        if(nChildren>1 && e.target.parentElement === container) {
           container.removeChild(e.target);
-          const newRects = getRects();
-          animateOthers(oldRects, newRects);
+          const newRects = getRects(container);
+          animateOthers(oldRects, newRects, duration);
         }
-      })
+      }
     );
   }
   else {
@@ -29,28 +29,28 @@ function addRemove(e) {
     newBox.append(document.createTextNode((nChildren+1).toString())); // put a number
     e.target.after(newBox);
 
-    const newRects = getRects();
-    animateOthers(oldRects, newRects);
-    animateNode(newBox, animation, true);
+    const newRects = getRects(container);
+    animateOthers(oldRects, newRects, duration);
+    animateNode(newBox, animation, duration, true);
   }
 }
 
 
 
 
-function getRects() {
-  return Array
-    .from(document.querySelectorAll('.container > div')) // use more specific selectors for better performance
-    .map(box => {
-      const rect = box.getBoundingClientRect();
-      return {
-        element: box,
-        x: rect.x,
-        y: rect.y
-      }
-    });
-}
+function getRects(container) {
+  const divs  = document.querySelectorAll('.container > div');
+  const boxes = Array.from(divs).filter(box=>box.parentElement===container);
 
+  return boxes.map(box => {
+    const rect = box.getBoundingClientRect();
+    return {
+      element: box,
+      x: rect.x,
+      y: rect.y
+    }
+  });
+}
 
 
 
@@ -65,26 +65,33 @@ function getAnimation(animation, isBegin) {
       {opacity: isBegin? '0' : '1'},
       {opacity: isBegin? '1' : '0'}
     ];
+    // ... add more keyframes as you want
   }
 }
 
 
 
 
-function animateNode(box, animation, isBegin) {
-  box.animate(
+function animateNode(box, animation, duration, isBegin) {
+
+  const spawn = new Animation( new KeyframeEffect(
+    box,
     getAnimation(animation, isBegin),
     {
-      duration: 250,
+      duration: duration,
       easing:   'ease-'+(isBegin? 'out':'in')
     }
-  );
+  ), document.timeline);
+
+  spawn.play();
+
+  return spawn.finished;  // Promise
 }
 
 
 
 
-function animateOthers(oldRects, newRects) {
+function animateOthers(oldRects, newRects, duration) {
   for(const newRect of newRects) {
     const oldRect = oldRects.find(rect => newRect.element === rect.element);
 
@@ -98,7 +105,7 @@ function animateOthers(oldRects, newRects) {
       {transform: `translate(${moveX}px, ${moveY}px)`},
       {transform: 'none'}
     ], {
-      duration: 250,
+      duration: duration,
       easing: 'ease-out'
     });
   }
